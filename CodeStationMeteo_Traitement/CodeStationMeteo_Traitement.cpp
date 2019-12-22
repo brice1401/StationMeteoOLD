@@ -4,6 +4,7 @@
 #include <SPI.h>
 #include <Wire.h>
 #include <SD.h>
+#include <RTClib.h>
 
 #include "EcranLCD.h"
 #include "EcritureSD.h"
@@ -17,12 +18,12 @@ int NbreRecepSauv; //Les données sont sauvegardées toute les 5 receptions
 float ListTemp[5];
 float ListeVitesse[5];
 float ListeDirection[5];
+int IndiceCourantEnregistrement = 0;
 
 
 int LengthData;
 char DataTraitee[61];
 int NbrePluie;
-float VolumePluieAffichage = 0;
 String DateReset;
 String HoraireReset;
 float ConversionPluie = 0.2794; //mm de pluie par interruption
@@ -30,7 +31,7 @@ float VolumeEauCourant = 0;
 float VolumeEauReset = 0;
 int DelayComptage = 250; // delay entre 2 comptages sur l'interrupteur
 float DataAffichage[] = {0, 0, 0, 0};
-int DirectionCardinal[] = {"N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","WSW","WNW","NW","NNW"};
+char DirectionCardinal[16][3] = {"N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","WSW","WNW","NW","NNW"};
 
 float TempMoyen;
 float VitesseVentMoyen;
@@ -45,27 +46,28 @@ String DateSauv;
 String HoraireSauv;
 float DataSauv[4];
 
+
 //Definition des Pins
 
 // Pin pour le bus SPI de la radio et de la carte SD
-int PinSCK = 13;
-int PinMISO = 12;
-int PinMOSI = 11;
-int PinNSSSD = 10; //CS de la carte SD
-int PinNSSRadio = 9; //CS de la radio
-int PinDI00 = 8;
+const int PinSCK = 13;
+const int PinMISO = 12;
+const int PinMOSI = 11;
+const int PinNSSSD = 10; //CS de la carte SD
+const int PinNSSRadio = 9; //CS de la radio
+const int PinDI00 = 8;
 
 //Pin pour la communication I2C avec le RTC
-String PinSDAClock = "A4";
-String PinSCLClock = "A5";
+const int PinSDAClock = A4;
+const int PinSCLClock = A5;
 
 //Pin pour l'écran LCD
-int PinRS = 2;
-int PinEnable = 3;
-int PinD4 = 4;
-int PinD5 = 5;
-int PinD6 = 6;
-int PinD7 = 7;
+const int PinRS = 2;
+const int PinEnable = 3;
+const int PinD4 = 4;
+const int PinD5 = 5;
+const int PinD6 = 6;
+const int PinD7 = 7;
 
 // Variables et pins pour l'affichage
 const int PinChangeEcran = A2;
@@ -89,15 +91,19 @@ int LastPositionChange;
 //Initilisation de l'ecran LCD
 LiquidCrystal lcd(PinRS, PinEnable, PinD4, PinD5, PinD6, PinD7);
 
+//definition du RTC
+RTC_DS1307 RTC;
+
 
 //Paramètres du modules radio
 #define NETWORKID     208   // Must be the same for all nodes (0 to 255)
 #define MYNODEID      0   // My node ID (0 to 255)
 #define TONODEID      1   // Destination node ID (0 to 254, 255 = broadcast)
 #define FREQUENCY   RF69_433MHZ  //Frequence d'emission
-#define ENCRYPT       true // Set to "true" to use encryption
+#define ENCRYPT       false // Set to "true" to use encryption
 #define ENCRYPTKEY    "RADIOMETEOROBLOT" // Use the same 16-byte key on all nodes
 #define USEACK        true // Request ACKs or not
+
 // Create a library object for our RFM69HCW module:
 RFM69 radio;
 
@@ -127,6 +133,17 @@ void setup() {
 	Serial.println("Card Ready");
 
 	//Creation du fichier si il n'existe pas
+	//A FAIRE
+
+	//Set up of rtc
+	Wire.begin();
+		RTC.begin(); // load the time from your computer.
+		if (! RTC.isrunning())
+		{
+			Serial.println("RTC is NOT running!");
+			// This will reflect the time that your sketch was compiled
+			RTC.adjust(DateTime(__DATE__, __TIME__));
+		}
 
 	// set up the LCD's number of columns and rows:
 	lcd.begin(16, 2);
@@ -189,6 +206,54 @@ void SelectionDonneeAffichage(int numero, float DataAffichage[]){
 		}
 }
 
+void Decodage(){
+	String ReceptionPluie = "";
+	String ReceptionDirectionVent = "";
+	String ReceptionForceVent = "";
+	String ReceptionTemp = "";
+	bool Enregistrement = true;
+	int NumData = 0;
+	int LengthData = radio.DATALEN;
+	//le message est de la forme suivante (les x sont des chiffres) :
+	//ZRAINZxxxxZSENSZxxxxZSPEEZxxxxZTEMPZxxxx
+
+	if(LengthData > 4){
+		for(int j = 0; j < LengthData; j++){ //on n'a que 4 donnees a aller chercher
+			char CharRadioCourant  = radio.DATA[j];
+			if(CharRadioCourant == 'Z'){
+				Enregistrement = !Enregistrement;
+				NumData += 1;
+			}
+			if(isDigit(CharRadioCourant)){ //le charactere est ajoute que si c'est un digit
+				if(NumData == 2){
+					ReceptionPluie += String(CharRadioCourant);
+				}
+				else if(NumData == 4){
+					ReceptionDirectionVent += String(CharRadioCourant);
+				}
+				else if(NumData == 6){
+					ReceptionForceVent += String(CharRadioCourant);
+				}
+				else if(NumData == 8){
+					ReceptionTemp += String(CharRadioCourant);
+				}
+			}
+		}
+	}
+
+	//On modifie les variables numerique du reste du code
+
+	VolumeEauCourant = ConversionPluie * ReceptionPluie.toFloat();
+	VolumeEauReset = ConversionPluie * ReceptionPluie.toFloat();
+
+	ListTemp[IndiceCourantEnregistrement] = ReceptionTemp.toFloat();
+	ListeVitesse[IndiceCourantEnregistrement] = ReceptionForceVent.toFloat();
+	ListeDirection[IndiceCourantEnregistrement] = ReceptionDirectionVent.toFloat();
+
+	IndiceCourantEnregistrement += 1 % 5;
+}
+
+
 void loop() {
 	// put your main code here, to run repeatedly:
 	// Prise en compte de l'horaire
@@ -219,23 +284,16 @@ void loop() {
     // and is DATALEN bytes in size:
     //Recuperation des données
 
-
-		LengthData = radio.DATALEN;
-		char DataBrute[LengthData] = radio.DATA;
-
-
-
 		// Send an ACK if requested.
 		if (radio.ACKRequested()){
 			radio.sendACK();
 		}
 		//Traitement des données recues
 		//DecodeReception(DataBrute, DataTraitee, LengthData);
+		//La fonction modifie les variables globales du pregrammes et prends directement celle de la radio
 
-		float DataTraitee[4] = Decodage(DataBrute, LengthData);
-
-
-  }
+		Decodage();
+	}
 
 
 	//Pour gérer l'affichage
@@ -247,27 +305,15 @@ void loop() {
 		debutAffichage = millis(); //Reinitialise le timer d'affichage
 		LastPositionChange = PositionChange;
 
-  }
+	}
 	TimeAffichageCourant = millis() - debutAffichage;
 	if(TimeAffichageCourant < TimeAffichageMax){
-	  //regarde depuis combien de temps c'est affiche, on coupe si trop longptemps
+		//regarde depuis combien de temps c'est affiche, on coupe si trop longptemps
 		Affichage = true;
 	}
 	else{
 	  Affichage = false;
 	}
-
-	if(Affichage){ //Si on affiche les données ou pas
-		lcd.display();
-		lcd.setCursor(0, 0);
-		lcd.print(MessageLCD0);
-		lcd.setCursor(0, 1);
-		lcd.print(MessageLCD1);
-		SelectionDonneeAffichage(NumEcran, DataAffichage);
-	}
-	else{
-	  lcd.noDisplay();
-  }
 
 
 	//Pour gérer l'affichage
@@ -301,42 +347,26 @@ void loop() {
 			Serial.println("Couldn't open log file");
 		}
 	}
-}
+	if(Affichage){
+			//Si on affiche les données ou pas
+			//On va chercher les donnees pour remplir le vecteur DataAffichage
 
-void Decodage(char * Data, int LengthData){
-	String ReceptionPluie = "";
-	String ReceptionDirectionVent = "";
-	String ReceptionForceVent = "";
-	String ReceptionTemp = "";
-	bool Enregistrement = true;
-	int NumData = 0;
-	//le message est de la forme suivante (les x sont des chiffres) :
-	//ZRAINZxxxxZSENSZxxxxZSPEEZxxxxZTEMPZxxxx
+			DataAffichage[0] = VolumeEauReset;
+			DataAffichage[1] = Moyenne(ListeDirection, NbreRecepSauv);
+			DataAffichage[2] = Moyenne(ListeVitesse, NbreRecepSauv);
+			DataAffichage[3] = Moyenne(ListTemp, NbreRecepSauv);
 
-	if(LengthData > 4){
-		for(int j = 0; j < LengthData; j++){ //on n'a que 4 donnees a aller chercher
-			if(Data[j] == 'Z'){
-				Enregistrement = !Enregistrement;
-				NumData += 1;
-			}
-			if(isDigit(Data[j])){ //le charactere est ajoute que si c'est un digit
-				if(NumData == 2){
-					ReceptionPluie += String(Data[j]);
-				}
-				else if(NumData == 4){
-					ReceptionDirectionVent += String(Data[j]);
-				}
-				else if(NumData == 6){
-					ReceptionForceVent += String(Data[j]);
-				}
-				else if(NumData == 8){
-					ReceptionTemp += String(Data[j]);
-				}
-			}
+			//Initialisation des lignes à afficher
+			SelectionDonneeAffichage(NumEcran, DataAffichage);
+
+			lcd.display();
+			lcd.setCursor(0, 0);
+			lcd.print(MessageLCD0);
+			lcd.setCursor(0, 1);
+			lcd.print(MessageLCD1);
+
 		}
-	}
-
-	//On modifie les variables numerique du reste du code
-
-
+		else{
+			lcd.noDisplay();
+	  }
 }

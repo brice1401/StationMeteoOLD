@@ -3,7 +3,7 @@
 #include <RTClib.h>
 #include "Arduino.h"
 
-RTC_DS1307 rtc;
+//RTC_DS1307 rtc;
 
 
 int getHeure() {
@@ -90,7 +90,7 @@ float Somme(float Liste[], int Length){
   return(sum);
 }
 
-
+/*
 void DecodeReception(char Message[], char DataTraitee[], int LengthData){
   //Fonction qui decode le message recu
   String ChaineCarac;
@@ -111,4 +111,5 @@ void DecodeReception(char Message[], char DataTraitee[], int LengthData){
       DataTraitee[iData] += ChaineCarac[j];
     }
   }
-}
+}*/
+
