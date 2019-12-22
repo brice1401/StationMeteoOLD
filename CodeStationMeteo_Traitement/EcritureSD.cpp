@@ -3,41 +3,41 @@
 #include <RTClib.h>
 #include "Arduino.h"
 
-//RTC_DS1307 rtc;
+RTC_DS1307 RTC;
 
 
 int getHeure() {
-  DateTime now = rtc.now();
+  DateTime now = RTC.now();
    return now.hour();
 }
 
 int getMinute() {
-  DateTime now = rtc.now();
+  DateTime now = RTC.now();
    return now.minute();
 }
 
 int getSeconde() {
-  DateTime now = rtc.now();
+  DateTime now = RTC.now();
    return now.second();
 }
 
 int getJour() {
-  DateTime now = rtc.now();
+  DateTime now = RTC.now();
    return now.day();
 }
 
 int getMois() {
-  DateTime now = rtc.now();
+  DateTime now = RTC.now();
    return now.month();
 }
 
 int getAnnee() {
-  DateTime now = rtc.now();
+  DateTime now = RTC.now();
    return now.year();
 }
 
 String getDate() {
-  DateTime now = rtc.now();
+  DateTime now = RTC.now();
   int Annee = now.year();
   int Mois = now.month();
   int Jour = now.day();
@@ -46,7 +46,7 @@ String getDate() {
 }
 
 String getDateJM() {
-  DateTime now = rtc.now();
+  DateTime now = RTC.now();
   int Mois = now.month();
   int Jour = now.day();
   String Date = String(Jour) + '/' + String(Mois);
@@ -54,7 +54,7 @@ String getDateJM() {
 }
 
 String getHoraire(){
-  DateTime now = rtc.now();
+  DateTime now = RTC.now();
   int Heure = now.hour();
   int Minute = now.minute();
   int Seconde = now.second();
@@ -64,7 +64,7 @@ String getHoraire(){
 }
 
 String getHoraireHM(){
-  DateTime now = rtc.now();
+  DateTime now = RTC.now();
   int Heure = now.hour();
   int Minute = now.minute();
   String Horaire = String(Heure) + ":" + String(Minute);
