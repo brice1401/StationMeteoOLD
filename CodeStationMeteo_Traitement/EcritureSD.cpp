@@ -2,6 +2,7 @@
 #include <SD.h>
 #include <RTClib.h>
 #include "Arduino.h"
+#include <Wire.h>
 
 RTC_DS1307 RTC;
 
@@ -90,26 +91,16 @@ float Somme(float Liste[], int Length){
   return(sum);
 }
 
-/*
-void DecodeReception(char Message[], char DataTraitee[], int LengthData){
-  //Fonction qui decode le message recu
-  String ChaineCarac;
-  
-  //Conversion des bytes en charactere
-  for (byte i = 0; i < LengthData; i++)
-    {
-      ChaineCarac += (char)Message[i];
-    }
+void RTCinit(){
+	// use to init the RTC module
+	Wire.begin();
+	RTC.begin(); // load the time from your computer.
+	if (! RTC.isrunning())
+	{
+		Serial.println("RTC is NOT running!");
+		// This will reflect the time that your sketch was compiled
+		RTC.adjust(DateTime(__DATE__, __TIME__));
+	}
 
-  //on parcourt la chaine de caracrtere pour sortir les données de mesure
-  int iData = 0;
-  for (int j = 4; j < LengthData; j++){  //commence à 4 pour eviter le probleme des lettres au début
-    if(ChaineCarac[j]<65){
-      iData += 1;
-    }
-    else {
-      DataTraitee[iData] += ChaineCarac[j];
-    }
-  }
-}*/
+}
 

@@ -4,7 +4,6 @@
 #include <SPI.h>
 #include <Wire.h>
 #include <SD.h>
-#include <RTClib.h>
 
 #include "EcranLCD.h"
 #include "EcritureSD.h"
@@ -91,9 +90,6 @@ int LastPositionChange;
 //Initilisation de l'ecran LCD
 LiquidCrystal lcd(PinRS, PinEnable, PinD4, PinD5, PinD6, PinD7);
 
-//definition du RTC
-RTC_DS1307 RTC;
-
 
 //Paramètres du modules radio
 #define NETWORKID     208   // Must be the same for all nodes (0 to 255)
@@ -117,9 +113,7 @@ void setup() {
 		ListTemp[i] = 0;
 		ListeVitesse[i] = 0;
 		ListeDirection[i] = 0;
-}
-	Affichage = false; //parametre d'affichage
-	NumEcran = 0;
+	}
 
 	//Initialisation fichier de mesure et de la carte sd
 	pinMode(PinNSSSD, OUTPUT); //pin slave du lecteur sd
@@ -136,14 +130,7 @@ void setup() {
 	//A FAIRE
 
 	//Set up of rtc
-	Wire.begin();
-		RTC.begin(); // load the time from your computer.
-		if (! RTC.isrunning())
-		{
-			Serial.println("RTC is NOT running!");
-			// This will reflect the time that your sketch was compiled
-			RTC.adjust(DateTime(__DATE__, __TIME__));
-		}
+	RTCinit();
 
 	// set up the LCD's number of columns and rows:
 	lcd.begin(16, 2);
@@ -156,7 +143,8 @@ void setup() {
 	DateReset = getDateJM();
 	HoraireReset = getHoraireHM();
 
-	Affichage = false;
+	Affichage = false; //est ce que l'on affiche
+	NumEcran = 0; //quelle ecran afficher
 
 	//Initialisation de la communication radio
 

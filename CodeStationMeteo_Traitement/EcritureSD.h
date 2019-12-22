@@ -19,3 +19,5 @@ void DecodeReception(char Message[], char DataTraitee[], int lengthData);
 
 float Moyenne(float Liste[], int Length);
 float Somme(float Liste[], int Length);
+
+void RTCinit();
