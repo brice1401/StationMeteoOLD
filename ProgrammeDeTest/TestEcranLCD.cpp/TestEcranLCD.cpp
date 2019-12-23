@@ -30,124 +30,153 @@ const int TimeAffichageMax = 5*1000;
 int TimeAffichageCourant = 0;
 int debutAffichage = 0;
 
+//Controle du fond
+int PinLedFond = A4;
+int PinLedContraste = A5;
+
+
 //Initilisation de l'ecran LCD
 LiquidCrystal lcd(PinRS, PinEnable, PinD4, PinD5, PinD6, PinD7);
 
 int PositionButton(int EntreeAnalog){
-	// si bouton appuie : 1
-	// si bouton relache : 0
+  // si bouton appuie : 1
+  // si bouton relache : 0
+  //On fait un changement de boutton que lorsque l'on passe de 1 à 0
 
-	int PositionButton;
+  int PositionButton;
 
-	if(EntreeAnalog > 500){
-		PositionButton = 1;
-	}
-	else{
-		PositionButton = 0;
-	}
-	return(PositionButton);
+  if(EntreeAnalog > 500){
+    PositionButton = 1;
+  }
+  else{
+    PositionButton = 0;
+  }
+  return(PositionButton);
 }
 
 void setup() {
 
-	Serial.begin(9600);
+  Serial.begin(9600);
 
-	Affichage = false; //parametre d'affichage
-	NumEcran = 0;
+  pinMode (PinLedFond, OUTPUT);
+  pinMode (PinLedContraste, OUTPUT);
 
-	lcd.begin(16, 2);
+  Affichage = false; //parametre d'affichage
+  NumEcran = 0;
 
-	//Initilisation des position des boutons pour l'affichage
-	PositionReset = PositionButton(analogRead(PinButtonReset));
-	PositionChange = PositionButton(analogRead(PinChangeEcran));
-	LastPositionReset = PositionReset;
-	LastPositionChange = PositionChange;
+  lcd.begin(16, 2);
+
+  //Initilisation des position des boutons pour l'affichage
+  PositionReset = PositionButton(analogRead(PinButtonReset));
+  PositionChange = PositionButton(analogRead(PinChangeEcran));
+  LastPositionReset = PositionReset;
+  LastPositionChange = PositionChange;
 
 
 }
 
 float DataAffichage[4];
 void SelectionDonneeAffichage(int numero, float DataAffichage[]){
-	//Fonction qui modifie les valeurs qui sont envoyées à l'écran LCD
+  //Fonction qui modifie les valeurs qui sont envoyées à l'écran LCD
 
-	if(numero == 0){
-		//on affiche le nombre de mm tombe
-		float VolumeEau = DataAffichage[numero];
-		MessageLCD0 = "Pluie :    |";
-		int PartieEnt = int(VolumeEau);
-		int PremiereDeci = (int(PartieEnt*10)-10*PartieEnt);
-		MessageLCD1 = String(PartieEnt) + "," + String(PremiereDeci);
-	}
-	else if(numero == 1){
-		//Affiche les données sur la direction du vent
-		MessageLCD0 = "Direction vent";
+  if(numero == 0){
+    //on affiche le nombre de mm tombe
+    float VolumeEau = DataAffichage[numero];
+    MessageLCD0 = "Pluie :    |";
+    int PartieEnt = int(VolumeEau);
+    int PremiereDeci = (int(PartieEnt*10)-10*PartieEnt);
+    MessageLCD1 = String(PartieEnt) + "," + String(PremiereDeci);
+  }
+  else if(numero == 1){
+    //Affiche les données sur la direction du vent
+    MessageLCD0 = "Direction vent";
 
-		int IndiceVent = DataAffichage[numero];
-		String DirectionVentAffichage = "Nord Ouest";
-		MessageLCD1 = DirectionVentAffichage;
-	}
-	else if(numero == 2){
-		//Affiche les données sur la force du vent
-		MessageLCD0 = "Force vent-km/h";
+    int IndiceVent = DataAffichage[numero];
+    String DirectionVentAffichage = "Nord Ouest";
+    MessageLCD1 = DirectionVentAffichage;
+  }
+  else if(numero == 2){
+    //Affiche les données sur la force du vent
+    MessageLCD0 = "Force vent-km/h";
 
-		float VitesseVentAffichage = DataAffichage[numero]*0.24;
-		MessageLCD1 = String(VitesseVentAffichage);
-		}
-	else if(numero == 3){
-		//Affiche les données sur la température
-		MessageLCD0 = "Pas de prise en";
-		MessageLCD1 = "compte de la T°";
-		}
+    float VitesseVentAffichage = DataAffichage[numero]*0.24;
+    MessageLCD1 = String(VitesseVentAffichage);
+    }
+  else if(numero == 3){
+    //Affiche les données sur la température
+    MessageLCD0 = "Pas de prise en";
+    MessageLCD1 = "compte de la T°";
+    }
 }
 
 
 void loop(){
 
-	PositionChange = PositionButton(analogRead(PinChangeEcran));
-	if(PositionChange != LastPositionChange){
-		NumEcran = NumEcran + 1 % 4;
-		Affichage = true;
-		debutAffichage = millis(); //Reinitialise le timer d'affichage
-		LastPositionChange = PositionChange;
-	}
+  //Pour gérer l'affichage
+  //On regarde si il y a eu un changement d'état du bouton change
+  PositionChange = PositionButton(analogRead(PinChangeEcran));
+  if(PositionChange != LastPositionChange){
+    LastdebounceTime = millis();
+    }
+  if((millis() - LastdebounceTime) > debounceDelay){
+    if((LastPositionChange == LOW) && (PositionChange != LastPositionChange)){
+      NumEcran = (NumEcran + 1) % 4;
+      Affichage = true;
+      debutAffichage = millis(); //Reinitialise le timer d'affichage
+      LastPositionChange = PositionChange;
+    }
 
-	TimeAffichageCourant = millis() - debutAffichage;
-	if(TimeAffichageCourant < TimeAffichageMax){
-		//regarde depuis combien de temps c'est affiche, on coupe si trop longptemps
-		Affichage = true;
-	}
-	else{
-	  Affichage = false;
-	}
+  }
+  TimeAffichageCourant = millis() - debutAffichage;
+  if(TimeAffichageCourant < TimeAffichageMax){
+    //regarde depuis combien de temps c'est affiche, on coupe si trop longptemps
+    Affichage = true;
+  }
+  else{
+    Affichage = false;
+  }
 
 
-	//Pour gérer l'affichage
-	//On regarde si il y a eu un changement d'état du bouton change
-	PositionReset = PositionButton(analogRead(PinButtonReset));
-	if(PositionReset != LastPositionReset){
-		Serial.print("Tout a été remis à 0");
-	}
+  //Pour gérer le reset des données
+  //On regarde si il y a eu un changement d'état du bouton reset
+  PositionReset = PositionButton(analogRead(PinButtonReset));
+  if(PositionReset != LastPositionReset){
+    LastdebounceTime = millis();
+  }
+  if((millis() - LastdebounceTime) > debounceDelay){
+    if((PositionReset != LastPositionReset) && (LastPositionReset = LOW)){
+      Serial.print("tous est remis à zéro \n"
+    }
+  }
 
-	if(Affichage){
-		//Si on affiche les données ou pas
-		//On va chercher les donnees pour remplir le vecteur DataAffichage
+  if(Affichage){
+    //Si on affiche les données ou pas
+    //On va chercher les donnees pour remplir le vecteur DataAffichage
 
-		DataAffichage[0] = 42;
-		DataAffichage[1] = 26;
-		DataAffichage[2] = 30;
-		DataAffichage[3] = 5;
+    DataAffichage[0] = 42;
+    DataAffichage[1] = 26;
+    DataAffichage[2] = 30;
+    DataAffichage[3] = 5;
 
-		//Initialisation des lignes à afficher
-		SelectionDonneeAffichage(NumEcran, DataAffichage);
+    //Initialisation des lignes à afficher
+    SelectionDonneeAffichage(NumEcran, DataAffichage);
 
-		lcd.display();
-		lcd.setCursor(0, 0);
-		lcd.print(MessageLCD0);
-		lcd.setCursor(0, 1);
-		lcd.print(MessageLCD1);
+    lcd.display();
+    lcd.setCursor(0, 0);
+    lcd.print("                "); //efface les caractère en memoire
+    lcd.setCursor(0, 0);
+    lcd.print(MessageLCD0);
+    lcd.setCursor(0, 1);
+    lcd.print("                ");
+    lcd.setCursor(0, 0);
+    lcd.print(MessageLCD1);
+    analogWrite (PinLedFond, 255);
+    analogWrite (PinLedFond, 128);
 
-		}
-		else{
-			lcd.noDisplay();
-		}
+    }
+    else{
+      lcd.noDisplay();
+      analogWrite (PinLedFond, 0);
+    }
+
 }
