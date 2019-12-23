@@ -68,7 +68,7 @@ const int PinD7 = 7;
 // Variables et pins pour l'affichage
 const int PinChangeEcran = A2;
 const int PinButtonReset = A3;
-const int PinLedFond = A4; //pour selection la valeur du retroeclairage
+const int PinLedFond = A1; //pour selection la valeur du retroeclairage
 
 //Temps d'affichage des valeurs sur l'écran
 const int TimeAffichageMax = 5*1000;
@@ -85,7 +85,7 @@ int PositionChange;
 int LastPositionReset;
 int LastPositionChange;
 unsigned long LastdebounceTime = 0;  // the last time the output pin was toggled
-unsigned long debounceDelay = 200;    // the debounce time; increase if the output flickers
+unsigned int debounceDelay = 200;    // the debounce time; increase if the output flickers
 
 //Initilisation de l'ecran LCD
 LiquidCrystal lcd(PinRS, PinEnable, PinD4, PinD5, PinD6, PinD7);

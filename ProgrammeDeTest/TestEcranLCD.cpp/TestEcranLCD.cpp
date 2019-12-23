@@ -29,10 +29,11 @@ int NumEcran;
 const int TimeAffichageMax = 5*1000;
 int TimeAffichageCourant = 0;
 int debutAffichage = 0;
+unsigned long LastdebounceTime = 0;  // the last time the output pin was toggled
+unsigned int debounceDelay = 200;    // the debounce time; increase if the output flickers
 
 //Controle du fond
-int PinLedFond = A4;
-int PinLedContraste = A5;
+int PinLedFond = A1;
 
 
 //Initilisation de l'ecran LCD
@@ -59,7 +60,6 @@ void setup() {
   Serial.begin(9600);
 
   pinMode (PinLedFond, OUTPUT);
-  pinMode (PinLedContraste, OUTPUT);
 
   Affichage = false; //parametre d'affichage
   NumEcran = 0;
@@ -145,7 +145,7 @@ void loop(){
   }
   if((millis() - LastdebounceTime) > debounceDelay){
     if((PositionReset != LastPositionReset) && (LastPositionReset = LOW)){
-      Serial.print("tous est remis à zéro \n"
+      Serial.print("tous est remis à zéro \n");
     }
   }
 
