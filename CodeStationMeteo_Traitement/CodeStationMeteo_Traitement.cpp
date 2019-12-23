@@ -68,6 +68,7 @@ const int PinD7 = 7;
 // Variables et pins pour l'affichage
 const int PinChangeEcran = A2;
 const int PinButtonReset = A3;
+const int PinLedFond = A4; //pour selection la valeur du retroeclairage
 
 //Temps d'affichage des valeurs sur l'écran
 const int TimeAffichageMax = 5*1000;
@@ -83,6 +84,8 @@ int PositionReset;
 int PositionChange;
 int LastPositionReset;
 int LastPositionChange;
+unsigned long LastdebounceTime = 0;  // the last time the output pin was toggled
+unsigned long debounceDelay = 200;    // the debounce time; increase if the output flickers
 
 //Initilisation de l'ecran LCD
 LiquidCrystal lcd(PinRS, PinEnable, PinD4, PinD5, PinD6, PinD7);
@@ -131,6 +134,7 @@ void setup() {
 
 	// set up the LCD's number of columns and rows:
 	lcd.begin(16, 2);
+	pinMode (PinLedFond, OUTPUT); //pour le retroeclairage
 
 	//Initilisation des position des boutons pour l'affichage
 	PositionReset = PositionButton(analogRead(PinButtonReset));
@@ -151,7 +155,7 @@ void setup() {
 	// Turn on encryption if desired:
 	if (ENCRYPT){
 		radio.encrypt(ENCRYPTKEY);
-}
+	}
 
 	Serial.print("Node ");
 	Serial.print(MYNODEID,DEC);
@@ -235,7 +239,7 @@ void Decodage(){
 	ListeVitesse[IndiceCourantEnregistrement] = ReceptionForceVent.toFloat();
 	ListeDirection[IndiceCourantEnregistrement] = ReceptionDirectionVent.toFloat();
 
-	IndiceCourantEnregistrement += 1 % 5;
+	IndiceCourantEnregistrement = (IndiceCourantEnregistrement + 1) % 5;
 }
 
 
@@ -285,10 +289,15 @@ void loop() {
 	//On regarde si il y a eu un changement d'état du bouton change
 	PositionChange = PositionButton(analogRead(PinChangeEcran));
 	if(PositionChange != LastPositionChange){
-		NumEcran = NumEcran + 1 % 4;
-		Affichage = true;
-		debutAffichage = millis(); //Reinitialise le timer d'affichage
-		LastPositionChange = PositionChange;
+		LastdebounceTime = millis();
+		}
+	if((millis() - LastdebounceTime) > debounceDelay){
+		if((LastPositionChange == LOW) && (PositionChange != LastPositionChange)){
+			NumEcran = (NumEcran + 1) % 4;
+			Affichage = true;
+			debutAffichage = millis(); //Reinitialise le timer d'affichage
+			LastPositionChange = PositionChange;
+		}
 
 	}
 	TimeAffichageCourant = millis() - debutAffichage;
@@ -301,14 +310,19 @@ void loop() {
 	}
 
 
-	//Pour gérer l'affichage
-	//On regarde si il y a eu un changement d'état du bouton change
+	//Pour gérer le reset des données
+	//On regarde si il y a eu un changement d'état du bouton reset
 	PositionReset = PositionButton(analogRead(PinButtonReset));
 	if(PositionReset != LastPositionReset){
-		VolumeEauReset = 0;
-		DateReset = getDateJM();
-		HoraireReset = getHoraireHM();
-		LastPositionReset = PositionReset;
+		LastdebounceTime = millis();
+	}
+	if((millis() - LastdebounceTime) > debounceDelay){
+		if((PositionReset != LastPositionReset) && (LastPositionReset = LOW)){
+			VolumeEauReset = 0;
+			DateReset = getDateJM();
+			HoraireReset = getHoraireHM();
+			LastPositionReset = PositionReset;
+		}
 	}
 
 	//Pour gérer l'enregistrement
@@ -346,12 +360,18 @@ void loop() {
 
 			lcd.display();
 			lcd.setCursor(0, 0);
+			lcd.print("                "); //efface les caractère en memoire
+			lcd.setCursor(0, 0);
 			lcd.print(MessageLCD0);
 			lcd.setCursor(0, 1);
+			lcd.print("                ");
+			lcd.setCursor(0, 0);
 			lcd.print(MessageLCD1);
+			analogWrite (PinLedFond, 255); //retroeclairage à fond
 
 		}
 		else{
 			lcd.noDisplay();
+			 analogWrite (PinLedFond, 0); //couper le retroeclairage
 	  }
 }

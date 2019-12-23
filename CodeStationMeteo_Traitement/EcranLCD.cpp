@@ -10,14 +10,15 @@
 int PositionButton(int EntreeAnalog){
 	// si bouton appuie : 1
 	// si bouton relache : 0
+	//On fait un changement de boutton que lorsque l'on passe de 1 à 0
 
 	int PositionButton;
 
 	if(EntreeAnalog > 500){
-		PositionButton = 1;
+		PositionButton = HIGH;
 	}
 	else{
-		PositionButton = 0;
+		PositionButton = LOW;
 	}
 	return(PositionButton);
 }

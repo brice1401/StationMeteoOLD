@@ -36,7 +36,6 @@ volatile int IndiceVistesseVent = 0;
 volatile int LastMillis = 0;
 
 // Variables pour le comptage pluviométrique
-int ButtonState;
 int LastButtonState = LOW;
 unsigned long LastDebounceTime = 0;  // the last time the output pin was toggled
 unsigned long debounceDelay = 200;    // the debounce time; increase if the output flickers
@@ -95,12 +94,12 @@ void loop() {
     // whatever the ReadingPluie is at, it's been there for longer than the debounce
     // delay, so take it as the actual current state:
     // if the button state has changed:
-    if (ReadingPluie != ButtonState) {
-      ButtonState = ReadingPluie;
+    if (ReadingPluie != LastButtonState) {
       NbrePluie += 1; //Il y a eu comptage d'un versement du godet.
+      LastButtonState = ReadingPluie;
     }
   }
-  LastButtonState = ReadingPluie;
+
 
 
   //###############################
