@@ -1,0 +1,9 @@
+à faire :
+
+* mettre les modifications du fichiers LCD tests dans le code traitement
+* pour la temporisation de l'affichage de l'écran : passer avec la fonction getSecond() du module RTC, 
+	l'objectif est de gagner de la place RAM en diminuant le nombre de variables
+
+
+
+** Lignes directrices : diminuer le nombre de variables ou leur taille pour libérer de la RAM
