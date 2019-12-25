@@ -29,9 +29,6 @@ int DelayComptage = 250; // delay entre 2 comptages sur l'interrupteur
 float DataAffichage[] = {0, 0, 0, 0};
 char DirectionCardinal[16][3] = {"N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","WSW","WNW","NW","NNW"};
 
-float TempMoyen;
-float VitesseVentMoyen;
-float DirectionVentMoyen;
 
 String NomFichier = "DataMeteo.txt";
 
@@ -71,9 +68,9 @@ const int PinButtonReset = A3;
 const int PinLedFond = A1; //pour selection la valeur du retroeclairage
 
 //Temps d'affichage des valeurs sur l'écran
-const int TimeAffichageMax = 5*1000;
+const int TimeAffichageMax = 5; //temps d'affichage max en seconde
 int TimeAffichageCourant = 0;
-int debutAffichage = 0;
+unsigned long debutAffichage = 0;
 
 int NumEcran = 0;
 bool Affichage;
@@ -300,8 +297,7 @@ void loop() {
 		}
 
 	}
-	TimeAffichageCourant = millis() - debutAffichage;
-	if(TimeAffichageCourant < TimeAffichageMax){
+	if((millis() - debutAffichage) < TimeAffichageMax){
 		//regarde depuis combien de temps c'est affiche, on coupe si trop longptemps
 		Affichage = true;
 	}
